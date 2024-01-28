@@ -55,7 +55,7 @@ def download_file(file, flag):
         print(f'File Downloaded: {file[5:]}')
 
 
-print(f'Building File Structure... {master_url}/{dl_folder_name}')
+print(f'Building File Structure... {master_url}{dl_folder_name}')
 if dl_flag == 'M':
     for i in hrefs:
         if "CRNM" in i.text or 'headers' in i.text or 'readme' in i.text:
@@ -83,5 +83,5 @@ with concurrent.futures.ThreadPoolExecutor() as executor:
         futures.append(executor.submit(download_file, file=f, flag=dl_flag))
 
 print(f'\n---COMPLETE---')
-print(f'Files Downloaded: {master_url}{dl_folder_name}')
+print(f'Files Downloaded: {master_url}')
 print(f'Total Runtime: {round((time.time() - run_time) / 60)}m')
