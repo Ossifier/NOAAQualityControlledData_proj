@@ -3,6 +3,11 @@ import sys
 import pandas as pd
 import time
 
+### This code is bad.       ###
+### Very, very, bad.        ###
+### Add multithreading.     ###
+### Improve code generally. ###
+
 run_time = time.time()
 set_step_time = time.time()
 folder_step_time = time.time()
