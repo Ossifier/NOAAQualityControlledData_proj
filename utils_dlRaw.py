@@ -10,6 +10,9 @@ from bs4 import BeautifulSoup
 
 today = date.today().strftime('%Y%m%d')
 
+if os.path.isdir('NOAA Quality Controlled Datasets_dl/') is False:
+    os.mkdir('NOAA Quality Controlled Datasets_dl/')
+
 dl_flag = input('Enter a Key to Select a Dataset:\n\n'
                 'NOAA Quality Controlled Monthly (M)\n'
                 'NOAA Quality Controlled Daily (D)\n'
@@ -20,8 +23,6 @@ dl_flag = input('Enter a Key to Select a Dataset:\n\n'
 if dl_flag.upper() == 'M':
     dl_folder_name = 'CRNM' + str(today)
     master_url = 'https://www.ncei.noaa.gov/pub/data/uscrn/products/monthly01/'
-    # print('Not Currently Functional... Quitting.')              # Wrap Monthly into this script.
-    # sys.exit()
 elif dl_flag.upper() == 'D':
     dl_folder_name = 'CRND' + str(today)
     master_url = 'https://www.ncei.noaa.gov/pub/data/uscrn/products/daily01/'
@@ -82,5 +83,5 @@ with concurrent.futures.ThreadPoolExecutor() as executor:
         futures.append(executor.submit(download_file, file=f, flag=dl_flag))
 
 print(f'\n---COMPLETE---')
-print(f'\nFiles Downloaded: {master_url}/{dl_folder_name}')
-print(f'\nTotal Runtime: {round((time.time() - run_time) / 60)}m')
+print(f'Files Downloaded: {master_url}{dl_folder_name}')
+print(f'Total Runtime: {round((time.time() - run_time) / 60)}m')
