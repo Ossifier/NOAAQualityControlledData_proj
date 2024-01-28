@@ -73,6 +73,7 @@ else:
             for f in dl_hrefs:
                 if "CRN" in f.text:
                     dl_file_list.append(i.text + f.text)
+                    
         elif 'header' in i.text or 'readme' in i.text:
             dl_misc_url = requests.get(master_url + i.text)
             open('NOAA Quality Controlled Datasets_dl/' + dl_folder_name + '/' + i.text, 'wb').write(dl_misc_url.content)
