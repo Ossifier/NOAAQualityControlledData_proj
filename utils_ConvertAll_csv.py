@@ -22,6 +22,7 @@ os.mkdir(master_folder)
 daily_keys = [x for x in os.listdir(source_dir) if x.startswith('CRN')]
 daily_keys_sub = []
 
+# Wrap this into a function.
 for key in daily_keys:
     if key.startswith('CRNM') is False:
         folder_ls = [x for x in os.listdir(source_dir + '/' + key) if x.startswith('1') or x.startswith('2')]
@@ -31,6 +32,7 @@ for key in daily_keys:
     elif key.startswith('CRNM') is True:
         dir_dict[key] = [x for x in os.listdir(source_dir + '/' + key) if x.startswith('CRNM')]
 
+# Wrap this into a function.
 for key in dir_dict:
     head_raw = open(source_dir + '/' + key + '/' + head_fn, 'r', encoding='utf-8')
     col_index = head_raw.readlines(1)[0].split()
