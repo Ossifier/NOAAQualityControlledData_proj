@@ -1,170 +1,202 @@
 import os
 import sys
-import pandas as pd
+import requests
+import concurrent.futures
 import time
+import pandas as pd
 
-### This code is bad.       ###
-### Very, very, bad.        ###
-### Add multithreading.     ###
-### Improve code generally. ###
+from datetime import date
+from tqdm import tqdm
+
+# Code is still very messy. #
+# But asynchronous batch processing is now implemented. #
+# This has improved performance by approximately 4x. #
+# Code improvements and cleaning up are the next step. #
 
 run_time = time.time()
 set_step_time = time.time()
 folder_step_time = time.time()
 
-dir_dict = {}
+file_structure_dict = {}
+
 head_fn = 'headers.txt'
+source_dir = 'NOAA Quality Controlled Datasets_dl'
 
 master_folder = 'NOAA Quality Controlled Datasets_csv'
-source_dir = 'NOAA Quality Controlled Datasets_dl'
-os.mkdir(master_folder)
+export_path_monthly = master_folder + '/MonthlyFileDump_csv'
+export_path_daily = master_folder + '/DailyFileDump_csv'
+export_path_hourly = master_folder + '/HourlyFileDump_csv'
+export_path_subhourly = master_folder + '/SubHourlyFileDump_csv'
 
-daily_keys = [x for x in os.listdir(source_dir) if x.startswith('CRN')]
+os.mkdir(master_folder)
+os.mkdir(export_path_monthly)
+
+# os.mkdir(export_path_daily)
+# os.mkdir(export_path_hourly)
+# os.mkdir(export_path_subhourly)
+
+dataset_list = [x for x in os.listdir(source_dir) if x.startswith('CRN')]
 daily_keys_sub = []
 
-# Wrap this into a function.
-for key in daily_keys:
-    if key.startswith('CRNM') is False:
-        folder_ls = [x for x in os.listdir(source_dir + '/' + key) if x.startswith('1') or x.startswith('2')]
-        dir_dict[key] = {}
-        for folder in folder_ls:
-            dir_dict[key][folder] = os.listdir(source_dir + '/' + key + '/' + folder)
-    elif key.startswith('CRNM') is True:
-        dir_dict[key] = [x for x in os.listdir(source_dir + '/' + key) if x.startswith('CRNM')]
+filepath_list_monthly = []
+filepath_list_daily = []
+filepath_list_hourly = []
+filepath_list_subhourly = []
 
-# Wrap this into a function.
-for key in dir_dict:
-    head_raw = open(source_dir + '/' + key + '/' + head_fn, 'r', encoding='utf-8')
-    col_index = head_raw.readlines(1)[0].split()
-    col_names = head_raw.readlines(2)[0].split()
+# filepath_list_nonmonthly = []
 
-    if key.startswith('CRNM'):
-        print('Publishing Monthly...')
-        export_path = master_folder + '/MonthlyFileDump_csv'
-        os.mkdir(export_path)
+# Build Remaining File Structure... bundle into function?
+# God there must be a better way...better coded to save on space, but it works for now and is semi-logical...
+for folder in dataset_list:
+    if folder.startswith('CRND'):
+        os.mkdir(export_path_daily)
+        os.mkdir(export_path_daily + '/' + folder)
+        subfolder_list = [x for x in os.listdir(source_dir + '/' + folder) if x.startswith('1') or x.startswith('2')]
+        for subfolder in subfolder_list:
+            os.mkdir(export_path_daily + '/' + folder + '/' + subfolder)
 
-        for file in dir_dict[key]:
-            data_raw = open(source_dir + '/' + key + '/' + file, 'r', encoding='utf-8')
-            data_lines = data_raw.readlines()
-            data_line_list = []
+    elif folder.startswith('CRNH'):
+        os.mkdir(export_path_hourly)
+        os.mkdir(export_path_hourly + '/' + folder)
+        subfolder_list = [x for x in os.listdir(source_dir + '/' + folder) if x.startswith('1') or x.startswith('2')]
+        for subfolder in subfolder_list:
+            os.mkdir(export_path_hourly + '/' + folder + '/' + subfolder)
 
-            for i in range(len(data_lines)):
-                data_line_list.append(data_lines[i].split())
+    elif folder.startswith('CRNS'):
+        os.mkdir(export_path_subhourly)
+        os.mkdir(export_path_subhourly + '/' + folder)
+        subfolder_list = [x for x in os.listdir(source_dir + '/' + folder) if x.startswith('1') or x.startswith('2')]
+        for subfolder in subfolder_list:
+            os.mkdir(export_path_subhourly + '/' + folder + '/' + subfolder)
 
-            export_df = pd.DataFrame(data_line_list)
-            export_df.columns = col_names
-            export_df['LST_YRMO'] = pd.to_datetime(export_df['LST_YRMO'].astype(str) + '01')
-            export_df.to_csv(export_path + '/' + file.replace('txt', 'csv'),
-                             index=False,
-                             date_format='%Y-%m',
-                             encoding='utf-8')
+# Get Filepath List for Datasets
+# Structuring as a big list so that they can be handled synchronously way more easily.
+for dataset in dataset_list:
+    if dataset.startswith('CRND'):
+        folder_list = [dataset + '/' + x for x in os.listdir(source_dir + '/' + dataset) if x.startswith('1') or x.startswith('2')]
+        for folder in folder_list:
+            filepath_list_daily = filepath_list_daily + [(folder + '/' + x) for x in os.listdir(source_dir + '/' + folder)]
+    if dataset.startswith('CRNH'):
+        folder_list = [dataset + '/' + x for x in os.listdir(source_dir + '/' + dataset) if x.startswith('1') or x.startswith('2')]
+        for folder in folder_list:
+            filepath_list_hourly = filepath_list_hourly + [(folder + '/' + x) for x in os.listdir(source_dir + '/' + folder)]
+    if dataset.startswith('CRNS'):
+        folder_list = [dataset + '/' + x for x in os.listdir(source_dir + '/' + dataset) if x.startswith('1') or x.startswith('2')]
+        for folder in folder_list:
+            filepath_list_subhourly = filepath_list_subhourly + [(folder + '/' + x) for x in os.listdir(source_dir + '/' + folder)]
 
-            data_raw.close()
+    elif dataset.startswith('CRNM'):
+        filepath_list_monthly = [(dataset + '/' + x) for x in os.listdir(source_dir + '/' + dataset) if x.startswith('CRNM')]
 
-        print(f'Time Elapsed: {round((time.time() - set_step_time) / 60)}m\n')
-        set_step_time = time.time()
 
-    else:
-        if key.startswith('CRND'):
-            print('Publishing Daily...')
-            export_path = master_folder + '/DailyFileDump_csv'
-            os.mkdir(export_path)
-            for folder in dir_dict[key]:
-                os.mkdir(export_path + '/' + folder)
+# Publish CSVs somehow...
+def publish_test_daily(source_path, subfolder_destination, col_names):
+    data_raw = open(source_dir + '/' + source_path, 'r', encoding='utf-8')
+    data_lines = data_raw.readlines()
+    data_line_list = []
 
-                for file in dir_dict[key][folder]:
-                    data_raw = open(source_dir + '/' + key + '/' + folder + '/' + file, 'r', encoding='utf-8')
-                    data_lines = data_raw.readlines()
-                    data_line_list = []
+    for i in range(len(data_lines)):
+        data_line_list.append(data_lines[i].split())
 
-                    for i in range(len(data_lines)):
-                        data_line_list.append(data_lines[i].split())
+    export_df = pd.DataFrame(data_line_list)
+    export_df.columns = col_names
+    # export_df['UTC_DATE'] = pd.to_datetime(export_df['UTC_DATE'])
+    export_df['LST_DATE'] = pd.to_datetime(export_df['LST_DATE'])
 
-                    export_df = pd.DataFrame(data_line_list)
-                    export_df.columns = col_names
-                    export_df['LST_DATE'] = pd.to_datetime(export_df['LST_DATE'])
+    export_df.to_csv(subfolder_destination + '/' + source_path.replace('txt', 'csv'),
+                     index=False,
+                     date_format='%Y-%m-%d',
+                     escapechar='*',
+                     encoding='utf-8')
 
-                    export_df.to_csv(export_path + '/' + folder + '/' + file.replace('txt', 'csv'),
-                                     index=False,
-                                     date_format='%Y-%m-%d',
-                                     escapechar='*',
-                                     encoding='utf-8')
+    data_raw.close()
 
-                    data_raw.close()
 
-                print(f'Folder {folder} Completed: {round(time.time() - folder_step_time)}s, '
-                      f'{round((time.time() - set_step_time) / 60)}m')
-                folder_step_time = time.time()
-            print(f'Set HourlyFileDump_csv Competed: {round((time.time() - set_step_time) / 60)}m\n')
-            set_step_time = time.time()
+def publish_test_hourly(source_path, subfolder_destination, col_names):
+    data_raw = open(source_dir + '/' + source_path, 'r', encoding='utf-8')
+    data_lines = data_raw.readlines()
+    data_line_list = []
 
-        elif key.startswith('CRNH'):
+    for i in range(len(data_lines)):
+        data_line_list.append(data_lines[i].split())
+
+    export_df = pd.DataFrame(data_line_list)
+    export_df.columns = col_names
+    export_df['UTC_DATE'] = pd.to_datetime(export_df['UTC_DATE'])
+    export_df['LST_DATE'] = pd.to_datetime(export_df['LST_DATE'])
+
+    export_df.to_csv(subfolder_destination + '/' + source_path.replace('txt', 'csv'),
+                     index=False,
+                     date_format='%Y-%m-%d',
+                     escapechar='*',
+                     encoding='utf-8')
+
+    data_raw.close()
+
+
+def publish_test_subhourly(source_path, subfolder_destination, col_names):
+    data_raw = open(source_dir + '/' + source_path, 'r', encoding='utf-8')
+    data_lines = data_raw.readlines()
+    data_line_list = []
+
+    for i in range(len(data_lines)):
+        data_line_list.append(data_lines[i].split())
+
+    export_df = pd.DataFrame(data_line_list)
+    export_df.columns = col_names
+    export_df['UTC_DATE'] = pd.to_datetime(export_df['UTC_DATE'])
+    export_df['LST_DATE'] = pd.to_datetime(export_df['LST_DATE'])
+
+    export_df.to_csv(subfolder_destination + '/' + source_path.replace('txt', 'csv'),
+                     index=False,
+                     date_format='%Y-%m-%d',
+                     escapechar='*',
+                     encoding='utf-8')
+
+    data_raw.close()
+
+
+start = time.time()
+
+with concurrent.futures.ProcessPoolExecutor() as executor:
+    for ds in dataset_list:
+
+        head_raw = open(source_dir + '/' + ds + '/' + head_fn, 'r', encoding='utf-8')
+        col_index = head_raw.readlines(1)[0].split()
+        col_names = head_raw.readlines(2)[0].split()
+
+        if ds.startswith('CRNH'):
             print('Publishing Hourly...')
-            export_path = master_folder + '/HourlyFileDump_csv'
-            os.mkdir(export_path)
-            for folder in dir_dict[key]:
-                os.mkdir(export_path + '/' + folder)
 
-                for file in dir_dict[key][folder]:
-                    data_raw = open(source_dir + '/' + key + '/' + folder + '/' + file, 'r', encoding='utf-8')
-                    data_lines = data_raw.readlines()
-                    data_line_list = []
+            for filepath in filepath_list_hourly:
+                executor.submit(publish_test_hourly, filepath, export_path_hourly, col_names)
 
-                    for i in range(len(data_lines)):
-                        data_line_list.append(data_lines[i].split())
+print(f'Processing Time ::: {round(time.time() - start)/60} minute(s)\n')
 
-                    export_df = pd.DataFrame(data_line_list)
-                    export_df.columns = col_names
-                    export_df['UTC_DATE'] = pd.to_datetime(export_df['UTC_DATE'])
-                    export_df['LST_DATE'] = pd.to_datetime(export_df['LST_DATE'])
+start = time.time()
 
-                    export_df.to_csv(export_path + '/' + folder + '/' + file.replace('txt', 'csv'),
-                                     index=False,
-                                     date_format='%Y-%m-%d',
-                                     escapechar='*',
-                                     encoding='utf-8')
+with concurrent.futures.ProcessPoolExecutor() as executor:
+    for ds in dataset_list:
+        head_raw = open(source_dir + '/' + ds + '/' + head_fn, 'r', encoding='utf-8')
+        col_index = head_raw.readlines(1)[0].split()
+        col_names = head_raw.readlines(2)[0].split()
+        if ds.startswith('CRND'):
+            print('Publishing Daily...')
+            for filepath in filepath_list_daily:
+                executor.submit(publish_test_daily, filepath, export_path_daily, col_names)
 
-                    data_raw.close()
+print(f'Performance ::: {round(time.time() - start)/60} minute(s)\n')
 
-                print(f'Folder {folder} Completed: {round(time.time() - folder_step_time)}s, '
-                      f'{round((time.time() - set_step_time) / 60)}m')
-                folder_step_time = time.time()
-            print(f'Set HourlyFileDump_csv Competed: {round((time.time() - set_step_time) / 60)}m\n')
-            set_step_time = time.time()
+start = time.time()
 
-        elif key.startswith('CRNS'):
+with concurrent.futures.ProcessPoolExecutor() as executor:
+    for ds in dataset_list:
+        head_raw = open(source_dir + '/' + ds + '/' + head_fn, 'r', encoding='utf-8')
+        col_index = head_raw.readlines(1)[0].split()
+        col_names = head_raw.readlines(2)[0].split()
+        if ds.startswith('CRNS'):
             print('Publishing SubHourly...')
-            export_path = master_folder + '/SubHourlyFileDump_csv'
-            os.mkdir(export_path)
-            for folder in dir_dict[key]:
-                os.mkdir(export_path + '/' + folder)
+            for filepath in filepath_list_subhourly:
+                executor.submit(publish_test_subhourly, filepath, export_path_subhourly, col_names)
 
-                for file in dir_dict[key][folder]:
-                    data_raw = open(source_dir + '/' + key + '/' + folder + '/' + file, 'r', encoding='utf-8')
-                    data_lines = data_raw.readlines()
-                    data_line_list = []
-
-                    for i in range(len(data_lines)):
-                        data_line_list.append(data_lines[i].split())
-
-                    export_df = pd.DataFrame(data_line_list)
-                    export_df.columns = col_names
-                    export_df['UTC_DATE'] = pd.to_datetime(export_df['UTC_DATE'])
-                    export_df['LST_DATE'] = pd.to_datetime(export_df['LST_DATE'])
-
-                    export_df.to_csv(export_path + '/' + folder + '/' + file.replace('txt', 'csv'),
-                                     index=False,
-                                     date_format='%Y-%m-%d',
-                                     escapechar='*',
-                                     encoding='utf-8')
-
-                    data_raw.close()
-
-                print(f'Folder {folder} Completed: {round(time.time() - folder_step_time)}s, '
-                      f'{round((time.time() - set_step_time) / 60)}m')
-                folder_step_time = time.time()
-            print(f'Set HourlyFileDump_csv Competed: {round((time.time() - set_step_time) / 60)}m\n')
-            set_step_time = time.time()
-
-print(f'Total Run Time: {round((time.time() - run_time) / 60)}m')
-folder_step_time = time.time()
+print(f'Performance ::: {round(time.time() - start)/60} minute(s)\n')
