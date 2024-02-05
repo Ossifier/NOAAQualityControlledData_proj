@@ -10,8 +10,8 @@ from bs4 import BeautifulSoup
 
 today = date.today().strftime('%Y%m%d')
 
-if os.path.isdir('NOAA Quality Controlled Datasets_dl/') is False:
-    os.mkdir('NOAA Quality Controlled Datasets_dl/')
+if os.path.isdir('NOAA Quality Controlled Datasets_raw/') is False:
+    os.mkdir('NOAA Quality Controlled Datasets_raw/')
 
 dl_flag = input('Enter a Key to Select a Dataset:\n\n'
                 'NOAA Quality Controlled Monthly (M)\n'
@@ -38,7 +38,7 @@ else:
 
 run_time = time.time()
 
-os.mkdir('NOAA Quality Controlled Datasets_dl/' + dl_folder_name)
+os.mkdir('NOAA Quality Controlled Datasets_raw/' + dl_folder_name)
 
 page = requests.get(master_url)
 soup = BeautifulSoup(page.content, 'html.parser')
@@ -48,14 +48,14 @@ dl_file_list = []
 
 def download_file(file, flag):
     dl_file_url = requests.get(master_url + file)
-    open('NOAA Quality Controlled Datasets_dl' + '/' + dl_folder_name + '/' + file, 'wb').write(dl_file_url.content)
+    open('NOAA Quality Controlled Datasets_raw' + '/' + dl_folder_name + '/' + file, 'wb').write(dl_file_url.content)
     if flag == 'M':
         print(f'File Downloaded: {file}')
     else:
         print(f'File Downloaded: {file[5:]}')
 
 
-print(f'Building Local File Structure... NOAA Quality Controlled Datasets_dl/{dl_folder_name}')
+print(f'Building File Structure... {master_url}{dl_folder_name}')
 if dl_flag == 'M':
     for i in hrefs:
         if "CRNM" in i.text or 'headers' in i.text or 'readme' in i.text:
@@ -63,7 +63,7 @@ if dl_flag == 'M':
 else:
     for i in tqdm(hrefs):
         if i.text.startswith('2'):
-            os.mkdir('NOAA Quality Controlled Datasets_dl/' + dl_folder_name + '/' + i.text[:4])
+            os.mkdir('NOAA Quality Controlled Datasets_raw/' + dl_folder_name + '/' + i.text[:4])
 
             dl_url = master_url + i.text
             dl_page = requests.get(dl_url)
@@ -76,7 +76,7 @@ else:
 
         elif 'header' in i.text or 'readme' in i.text:
             dl_misc_url = requests.get(master_url + i.text)
-            open('NOAA Quality Controlled Datasets_dl/' + dl_folder_name + '/' + i.text, 'wb').write(dl_misc_url.content)
+            open('NOAA Quality Controlled Datasets_raw/' + dl_folder_name + '/' + i.text, 'wb').write(dl_misc_url.content)
 
 with concurrent.futures.ThreadPoolExecutor() as executor:
     futures = []
