@@ -1,73 +1,50 @@
 import os
-import sys
-import requests
 import concurrent.futures
 import time
 import pandas as pd
-
-from datetime import date
-from tqdm import tqdm
 
 # Code is still very messy. #
 # But asynchronous batch processing is now implemented. #
 # This has improved performance by approximately 4x. #
 # Code improvements and cleaning up are the next step. #
 
-run_time = time.time()
-set_step_time = time.time()
-folder_step_time = time.time()
+# Get rid of FileDump Folder Structure.
 
 file_structure_dict = {}
 
 head_fn = 'headers.txt'
-source_dir = 'NOAA Quality Controlled Datasets_dl'
+source_dir = 'NOAA Quality Controlled Datasets_raw'
 
 master_folder = 'NOAA Quality Controlled Datasets_csv'
-export_path_monthly = master_folder + '/MonthlyFileDump_csv'
-export_path_daily = master_folder + '/DailyFileDump_csv'
-export_path_hourly = master_folder + '/HourlyFileDump_csv'
-export_path_subhourly = master_folder + '/SubHourlyFileDump_csv'
-
 os.mkdir(master_folder)
-os.mkdir(export_path_monthly)
-
-# os.mkdir(export_path_daily)
-# os.mkdir(export_path_hourly)
-# os.mkdir(export_path_subhourly)
 
 dataset_list = [x for x in os.listdir(source_dir) if x.startswith('CRN')]
-daily_keys_sub = []
 
 filepath_list_monthly = []
 filepath_list_daily = []
 filepath_list_hourly = []
 filepath_list_subhourly = []
 
-# filepath_list_nonmonthly = []
-
 # Build Remaining File Structure... bundle into function?
 # God there must be a better way...better coded to save on space, but it works for now and is semi-logical...
 for folder in dataset_list:
     if folder.startswith('CRND'):
-        os.mkdir(export_path_daily)
-        os.mkdir(export_path_daily + '/' + folder)
+        os.mkdir(master_folder + '/' + folder)
         subfolder_list = [x for x in os.listdir(source_dir + '/' + folder) if x.startswith('1') or x.startswith('2')]
         for subfolder in subfolder_list:
-            os.mkdir(export_path_daily + '/' + folder + '/' + subfolder)
+            os.mkdir(master_folder + '/' + folder + '/' + subfolder)
 
     elif folder.startswith('CRNH'):
-        os.mkdir(export_path_hourly)
-        os.mkdir(export_path_hourly + '/' + folder)
+        os.mkdir(master_folder + '/' + folder)
         subfolder_list = [x for x in os.listdir(source_dir + '/' + folder) if x.startswith('1') or x.startswith('2')]
         for subfolder in subfolder_list:
-            os.mkdir(export_path_hourly + '/' + folder + '/' + subfolder)
+            os.mkdir(master_folder + '/' + folder + '/' + subfolder)
 
     elif folder.startswith('CRNS'):
-        os.mkdir(export_path_subhourly)
-        os.mkdir(export_path_subhourly + '/' + folder)
+        os.mkdir(master_folder + '/' + folder)
         subfolder_list = [x for x in os.listdir(source_dir + '/' + folder) if x.startswith('1') or x.startswith('2')]
         for subfolder in subfolder_list:
-            os.mkdir(export_path_subhourly + '/' + folder + '/' + subfolder)
+            os.mkdir(master_folder + '/' + folder + '/' + subfolder)
 
 # Get Filepath List for Datasets
 # Structuring as a big list so that they can be handled synchronously way more easily.
@@ -169,7 +146,7 @@ with concurrent.futures.ProcessPoolExecutor() as executor:
             print('Publishing Hourly...')
 
             for filepath in filepath_list_hourly:
-                executor.submit(publish_test_hourly, filepath, export_path_hourly, col_names)
+                executor.submit(publish_test_hourly, filepath, master_folder, col_names)
 
 print(f'Processing Time ::: {round(time.time() - start)/60} minute(s)\n')
 
@@ -183,7 +160,7 @@ with concurrent.futures.ProcessPoolExecutor() as executor:
         if ds.startswith('CRND'):
             print('Publishing Daily...')
             for filepath in filepath_list_daily:
-                executor.submit(publish_test_daily, filepath, export_path_daily, col_names)
+                executor.submit(publish_test_daily, filepath, master_folder, col_names)
 
 print(f'Performance ::: {round(time.time() - start)/60} minute(s)\n')
 
@@ -197,6 +174,6 @@ with concurrent.futures.ProcessPoolExecutor() as executor:
         if ds.startswith('CRNS'):
             print('Publishing SubHourly...')
             for filepath in filepath_list_subhourly:
-                executor.submit(publish_test_subhourly, filepath, export_path_subhourly, col_names)
+                executor.submit(publish_test_subhourly, filepath, master_folder, col_names)
 
 print(f'Performance ::: {round(time.time() - start)/60} minute(s)\n')
