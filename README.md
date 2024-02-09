@@ -1,5 +1,6 @@
 ## TO PLAN:
 1. Start planning up how to structure the dataset. What do I need? Database? SQL? Something else?
+2. Start thinking about page structure. What would be the best approach for navigating the data?
 
 ## TO DO:
 1. Code structure improvements still needed in utils_ConvertAll_csv.py.
