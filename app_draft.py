@@ -17,11 +17,6 @@ df_ak_all = pd.concat([df_ak_2020, df_ak_2021, df_ak_2022, df_ak_2023])
 # Remove Outliers
 df_ak_all_clean = df_ak_all.drop(df_ak_all[df_ak_all['T_DAILY_MEAN'] == -9999].index)
 
-# app.layout = html.Div([
-#     html.Div(children='Daily T_MEAN - Aleknagik (AK) 2020 - 2023'),
-#     dcc.Graph(figure=px.line(df_ak_all_clean, x='LST_DATE', y=df_ak_all_clean.columns[5:9]))
-# ])
-
 app.layout = html.Div(className='dash', children=[
 
     # Define Sidebar HTML #
