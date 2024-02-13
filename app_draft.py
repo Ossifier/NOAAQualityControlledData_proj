@@ -24,6 +24,7 @@ df_ak_all_clean = df_ak_all.drop(df_ak_all[df_ak_all['T_DAILY_MEAN'] == -9999].i
 
 app.layout = html.Div(className='dash', children=[
 
+    # Define Sidebar HTML #
     html.Div(className="sidebar", children=[
         html.Div(className="top", children=[
             html.Div(className="logo", children=[
@@ -70,6 +71,7 @@ app.layout = html.Div(className='dash', children=[
         ])
     ]),
 
+    # Define Main Content HTML #
     html.Div(className='main-content', children=[
         html.Div(className='container', children=[
 
